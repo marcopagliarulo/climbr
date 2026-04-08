@@ -1,158 +1,195 @@
 import Configstore from 'configstore';
+import { z } from 'zod';
 import type {
-  ConfigDefinitionSet,
-  ConfigDefinition,
   ConfigSchema,
+  ConfigRegistry,
 } from '@climbr/core/types/config.js';
 
 /**
- * ConfigStoreService handles storing and retrieving configuration.
+ * ConfigStoreService handles storing, retrieving, and validating configuration.
+ *
+ * Schemas are Zod objects. Validation happens at write time via `set()`,
+ * so values on disk are always guaranteed to match the schema.
  */
 export default class ConfigStoreService {
   private store: Configstore;
 
-  private schema: ConfigSchema;
+  private registry: ConfigRegistry;
 
-  constructor(storeName: string) {
+  public constructor(storeName: string) {
     this.store = new Configstore(storeName);
-    this.schema = { commands: {} };
+    this.registry = {};
   }
 
   /**
-   * Initialise the service with a config schema.
+   * Register a Zod schema for a given scope.
+   * Called by the framework during command discovery.
+   * @param {string} scope - 'global' or a command name.
+   * @param {ConfigSchema} schema - The Zod schema for this scope.
    */
-  init(schema: ConfigSchema): void {
-    this.schema = schema;
+  public registerSchema(scope: string, schema: ConfigSchema): void {
+    this.registry[scope] = schema;
   }
 
   /**
-   * Get the value of a configuration key for a specific command.
-   * @param {string} config.command - The command name.
-   * @param {string} config.key - The configuration key to retrieve.
-   * @returns {string | number | boolean | object} The value of the configuration key, or its default value if not set.
+   * Get the inferred TypeScript type for a scope's schema.
+   * Merges stored values with Zod defaults.
+   * @param {string} scope - 'global' or a command name.
+   * @returns The parsed config object for this scope.
    */
-  public get({
-    command,
-    key,
-  }: {
-    command: string;
-    key: string;
-  }): unknown {
-    const storeKey = `commands.${command}.${key}`;
-    const value = this.store.get(storeKey);
+  public getAll<T extends ConfigSchema>(scope: string): z.infer<T> {
+    const schema = this.registry[scope];
+    if (!schema) throw new Error(`No schema registered for scope: '${scope}'`);
+    const stored = this.store.get(scope) ?? {};
+    return schema.parse(stored) as z.infer<T>;
+  }
 
-    if (value === undefined) {
-      const definition = this.getConfigDefinition({ command, key });
-      if (definition?.default !== undefined) return definition.default;
+  /**
+   * Get a single configuration value for a scope/key pair.
+   * Falls back to the Zod default if not set.
+   * @param {string} scope - 'global' or a command name.
+   * @param {string} key - The configuration key.
+   * @returns The value, or undefined if not set and no default.
+   */
+  public get(scope: string, key: string): unknown {
+    if (this.hasScope(scope) && this.hasKey(scope, key)) {
+      const value = this.store.get([scope, key].join('.'));
+      if (typeof value !== 'undefined') {
+        return value;
+      }
     }
-    return value;
+
+    // Fall back to Zod default
+    const schema = this.registry[scope];
+    if (!schema) return undefined;
+    const shape = schema.shape as Record<string, z.ZodTypeAny>;
+    const fieldSchema = shape[key];
+    if (!fieldSchema) return undefined;
+
+    const defaultResult = fieldSchema.safeParse(undefined);
+    return defaultResult.success ? defaultResult.data : undefined;
   }
 
   /**
-   * Set the value of a configuration key for a specific command.
-   * @template T
-   * @param {string} config.command - The command name.
-   * @param {string} config.key - The configuration key to set.
-   * @param {T} config.value - The value to set for the configuration key.
+   * Set a configuration value, validating it against the registered Zod schema.
+   * Throws a descriptive error if validation fails.
+   * @param {string} scope - 'global' or a command name.
+   * @param {string} key - The configuration key.
+   * @param {unknown} value - The value to set.
    */
-  public set<T>({
-    command,
-    key,
-    value,
-  }: {
-    command?: string;
-    key: string;
-    value: T;
-  }): void {
-    const storeKey = `commands.${command}.${key}`;
-    this.store.set(storeKey, value);
+  public set(scope: string, key: string, value: unknown): void {
+    const schema = this.registry[scope];
+    if (!schema) throw new Error(`No schema registered for scope: '${scope}'`);
+
+    const shape = schema.shape as Record<string, z.ZodTypeAny>;
+    const fieldSchema = shape[key];
+    if (!fieldSchema) throw new Error(`Key '${key}' does not exist in scope '${scope}'`);
+
+    try {
+      const result = fieldSchema.safeParse(value);
+      const current = this.store.get(scope) ?? {};
+      this.store.set(scope, { ...current, [key]: result.data });
+    } catch (error: unknown) {
+      const messages = [];
+      if (error instanceof z.ZodError) {
+        error.issues.forEach((issue: z.core.$ZodIssue) => {
+          messages.push(issue.message);
+        });
+      }
+      else if (error instanceof Error){
+        messages.push(error.message);
+      }
+      
+      throw new Error(`Invalid value for '${key}': ${messages.join('\n')}`, { cause: error });
+    }
   }
 
   /**
-   * Delete a configuration key for a specific command.
-   * @param {string} config.command - The command name.
-   * @param {string} config.key - The configuration key to delete.
+   * Delete a single configuration key from a scope.
+   * @param {string} scope - 'global' or a command name.
+   * @param {string} key - The configuration key to delete.
    */
-  public delete({
-    command,
-    key,
-  }: {
-    command: string;
-    key: string;
-  }): void {
-    const storeKey = `commands.${command}.${key}`;
-    this.store.delete(storeKey);
+  public delete(scope: string, key: string): void {
+    const current = this.store.get<ConfigSchema>(scope) ?? { key: ''};
+    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [key]: _, ...rest } = current as { [key:string]: unknown};
+    this.store.set(scope, rest);
   }
 
   /**
-   * Get the names of all available commands in the configuration.
-   * @returns {string[]} An array of command names.
+   * Get all registered scope names.
+   * @returns {string[]} Array of scope names.
    */
-  public getConfigCommandNames(): string[] {
-    return Object.keys(this.schema.commands);
+  public getScopes(): string[] {
+    return Object.keys(this.registry);
   }
 
   /**
-   * Get the keys of the configuration for a specific command.
-   * @param {string} command - The command name.
-   * @returns {string[]} An array of configuration keys.
+   * Get all key names for a given scope.
+   * @param {string} scope - 'global' or a command name.
+   * @returns {string[]} Array of key names.
    */
-  public getConfigKeysNames(command: string): string[] {
-    const keys = this.schema.commands[command] ?? {};
-    return Object.keys(keys);
+  public getKeys(scope: string): string[] {
+    const schema = this.registry[scope];
+    if (!schema) return [];
+    return Object.keys(schema.shape);
   }
 
   /**
-   * Get the definition of a specific configuration key for a command.
-   * @param {string} config.command - The command name.
-   * @param {string} config.key - The configuration key to retrieve the definition for.
-   * @returns {ConfigDefinition | null} The configuration definition.
+   * Get the Zod schema for a specific field in a scope.
+   * Used by the config command to determine prompt type.
+   * @param {string} scope - 'global' or a command name.
+   * @param {string} key - The configuration key.
+   * @returns {z.ZodTypeAny | undefined} The Zod schema for the field.
    */
-  public getConfigDefinition({
-    command,
-    key,
-  }: {
-    command: string;
-    key: string;
-  }): ConfigDefinition | null {
-    const commandSchema = this.schema.commands[command];
-    if (!commandSchema) return null;
-    return commandSchema[key] ?? null;
+  public getFieldSchema(scope: string, key: string): z.ZodTypeAny | undefined {
+    const schema = this.registry[scope];
+    if (!schema) return undefined;
+    return (schema.shape as Record<string, z.ZodTypeAny>)[key];
   }
 
   /**
-   * Get the entire configuration schema.
-   * @returns {object} The configuration schema.
+   * Check if a scope name is registered.
+   * @param {string} scope - The scope to validate.
+   * @returns {boolean}
    */
-  public getConfigSchema(): ConfigSchema {
-    return this.schema;
+  public hasScope(scope: string): boolean {
+    return scope in this.registry;
   }
 
   /**
-   * Get the configuration schema for a specific command.
-   * @param {string} command - The command name.
-   * @returns {ConfigDefinitionSet | null} The configuration schema for the command.
+   * Check if a key exists within a scope.
+   * @param {string} scope - The scope name.
+   * @param {string} key - The key to validate.
+   * @returns {boolean}
    */
-  public getCommandConfigSchema(command: string): ConfigDefinitionSet | null {
-    return this.schema.commands[command] ?? null;
+  public hasKey(scope: string, key: string): boolean {
+    return this.getKeys(scope).includes(key);
   }
 
-  /**
-   * Validate if a specific command name exists.
-   * @param {string} command - The command name.
-   * @returns {boolean} Whatever if the command exists or not.
-   */
-  public validateCommandName(command: string): boolean {
-    return this.getConfigCommandNames().includes(command);
-  }
+  public validateScope (
+    scope: string,
+  ): void {
+    if (!this.hasScope(scope)) {
+      const available = this.getScopes().join(', ');
+      throw new Error(
+        `Invalid configurable scope: '${scope}'. Available: ${available}`,
+      );
+    }
+  };
 
-  /**
-   * Validate if a specific command config key exists.
-   * @param {string} command - The command name.
-   * @param {string} configKey - The config key.
-   * @returns {boolean} Whatever if the command exists or not.
-   */
-  public validateConfigKey(command: string, configKey: string): boolean {
-    return this.getConfigKeysNames(command).includes(configKey);
-  }
+  public validateConfigKey(
+    scope: string,
+    key: string,
+  ): void {
+    if (this.hasScope(scope)) {
+      if (!this.hasKey(scope, key)) {
+        throw new Error(
+          `The config key '${key}' for command '${scope}' does not exist.`,
+        );
+      }
+    }
+  };
+
 }

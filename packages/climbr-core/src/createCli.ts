@@ -9,6 +9,7 @@ import type {
   ClimbrPlugin,
   ClimbrInstance,
 } from '@climbr/core/types/framework.js';
+import CliUtils from '@climbr/core/utils/cli.js';
 
 /**
  * Create and configure a climbr CLI instance.
@@ -67,29 +68,35 @@ export function createCli(options: ClimbrOptions): ClimbrInstance {
     },
 
     async run(): Promise<void> {
-      // 1. Discover commands and config schema from the consumer's commandsDir
-      const discovery = new CommandDiscoveryService(
-        commandsDir,
-      );
+      try {
+        if (existsSync(commandsDir)) {
+          // 1. Discover commands and config schema from the consumer's commandsDir
+          const discovery = new CommandDiscoveryService(
+            commandsDir,
+          );
+          await discovery.registerSchemas(configStore);
 
-      const schema = await discovery.loadConfigSchema();
-      configStore.init(schema);
 
-      // 2. Load auto-discovered commands into the program
-      if (existsSync(commandsDir)) {
-        await discovery.loadCommands(program);
+          // 2. Load auto-discovered commands into the program
+          await discovery.loadCommands(program);
+
+          // 3. Register built-in default commands (unless disabled or overridden)
+          registerDefaults(defaults, plugins, program, configStore);
+
+          // 4. Register any explicitly added plugins (overrides take effect here)
+          for (const plugin of plugins.values()) {
+            program.addCommand(plugin);
+          }
+
+          // 5. Parse and execute
+          await program.parseAsync(process.argv);
+        }
+      } catch (error) {
+        CliUtils.showError(
+          error instanceof Error ? error.message : 'Unknown error',
+          true,
+        );
       }
-
-      // 3. Register built-in default commands (unless disabled or overridden)
-      registerDefaults(defaults, plugins, program, configStore);
-
-      // 4. Register any explicitly added plugins (overrides take effect here)
-      for (const plugin of plugins.values()) {
-        program.addCommand(plugin);
-      }
-
-      // 5. Parse and execute
-      program.parse(process.argv);
     },
   };
 

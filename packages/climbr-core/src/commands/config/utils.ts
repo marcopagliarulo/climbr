@@ -1,65 +1,91 @@
+import { z } from 'zod';
 import CLI from '@climbr/core/utils/cli.js';
 import type ConfigStoreService from '@climbr/core/services/configStore/index.js';
-import type { PromptSelect } from '@climbr/core/types/cli.js';
+import type { InquirerChoice, PromptSelect } from '@climbr/core/types/cli.js';
 
-const pickOption = async <T>({
-  message,
-  choices,
-}: PromptSelect<T>): Promise<T | string> => {
-  if (choices.length === 0) return '';
-  if (choices.length === 1) return choices[0]!.value;
+/**
+ * Generic single-pick helper — auto-selects if only one choice, prompts otherwise.
+ */
+const pickOption = async <T>({ message, choices }: PromptSelect<T>): Promise<T> => {
+  if (choices.length === 1) {
+    const choice = choices.shift() as InquirerChoice<T>;
+    return choice.value;
+  }
   return CLI.promptSelect({ message, choices });
 };
 
-export const validateCommand = (
-  configStore: ConfigStoreService,
-  command: string,
-): void => {
-  if (!configStore.validateCommandName(command)) {
-    const available = configStore.getConfigCommandNames().join(', ');
-    throw new Error(
-      `Invalid configurable command: '${command}'. Available: ${available}`,
-    );
-  }
+export const pickScope = async (configStore: ConfigStoreService, action: string): Promise<string> => {
+  const choices = configStore.getScopes().map((s) => ({
+    name: s.charAt(0).toUpperCase() + s.slice(1),
+    value: s,
+  }));
+  return pickOption<string>({ message: `Select a scope to ${action}:`, choices });
 };
 
-export const validateConfigKey = (
+export const pickKey = async (
   configStore: ConfigStoreService,
-  command: string,
+  scope: string,
+  action: string,
+): Promise<string> => {
+  const choices = configStore.getKeys(scope).map((k) => ({ name: k, value: k }));
+  return pickOption<string>({ message: `Select a key to ${action}:`, choices });
+};
+
+/**
+ * Introspect a Zod schema to determine the best prompt type and call the
+ * appropriate CLI prompt method. Returns the validated value.
+ */
+export const promptForZodField = async (
+  fieldSchema: z.ZodTypeAny,
   key: string,
-): void => {
-  if (!configStore.validateConfigKey(command, key)) {
-    throw new Error(
-      `The config key '${key}' for command '${command}' does not exist.`,
-    );
+): Promise<unknown> => {
+  const message = `Enter value for '${key}':`;
+
+  // Unwrap ZodDefault to get the inner type and default value
+//  let innerSchema = fieldSchema;
+  let defaultValue: unknown;
+
+  if (fieldSchema instanceof z.ZodDefault) {
+    defaultValue = fieldSchema.parse(undefined);
   }
-};
 
-export const pickCommand = async (
-  configStore: ConfigStoreService,
-  action: string,
-): Promise<string> => {
-  const choices = configStore.getConfigCommandNames().map((name) => ({
-    name: name.charAt(0).toUpperCase() + name.slice(1),
-    value: name,
-  }));
-  return pickOption<string>({
-    message: `Select a command to ${action} the configuration for:`,
-    choices,
-  });
-};
+  if (fieldSchema instanceof z.ZodString) {
+    return CLI.promptInput({
+      message,
+      defaultValue: defaultValue as string | undefined,
+      required: true,
+    });
+  }
 
-export const pickCommandConfigKey = async (
-  configStore: ConfigStoreService,
-  command: string,
-  action: string,
-): Promise<string> => {
-  const choices = configStore.getConfigKeysNames(command).map((name) => ({
-    name,
-    value: name,
-  }));
-  return pickOption<string>({
-    message: `Select a configuration key to ${action} the configuration for:`,
-    choices,
-  });
+  if (fieldSchema instanceof z.ZodNumber) {
+    return CLI.promptNumber({
+      message,
+      defaultValue: defaultValue as number | undefined,
+      required: true,
+    });
+  }
+
+  if (fieldSchema instanceof z.ZodBoolean) {
+    return CLI.promptBoolean(message);
+  }
+
+  if (fieldSchema instanceof z.ZodEnum) {
+    const options = fieldSchema.options as string[];
+    return CLI.promptSelect({
+      message,
+      choices: options.map((o) => ({ name: o, value: o })),
+      defaultValue: defaultValue as string | undefined,
+    });
+  }
+
+  if (fieldSchema instanceof z.ZodArray) {
+    return CLI.promptArray({ message });
+  }
+
+  if (fieldSchema instanceof z.ZodObject) {
+    return CLI.promptObject({ message });
+  }
+
+  // Fallback: treat as string and let Zod validate on set
+  return CLI.promptInput({ message, required: true });
 };

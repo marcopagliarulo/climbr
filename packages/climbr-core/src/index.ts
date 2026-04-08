@@ -7,8 +7,11 @@ export { default as CacheService } from './services/cache/index.js';
 export { default as CommandDiscoveryService } from './services/commandDiscovery/index.js';
 
 // Utilities
-export { default as CLI } from './utils/cli.js';
+export { default as CliUtils } from './utils/cli.js';
 export { capitalize } from './utils/string.js';
+
+// Re-export zod for convenience.
+export { z } from 'zod';
 
 // Types
 export type {
@@ -17,10 +20,9 @@ export type {
   ClimbrInstance,
 } from './types/framework.js';
 export type {
-  ConfigDefinition,
-  ConfigDefinitionSet,
   ConfigSchema,
-  ConfigValueType,
+  InferConfig,
+  ConfigRegistry
 } from './types/config.js';
 export type {
   InquirerChoice,

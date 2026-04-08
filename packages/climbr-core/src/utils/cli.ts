@@ -30,7 +30,7 @@ import type {
  * CLI utility class for handling console input/output operations.
  * Wraps ora, chalk, boxen and @inquirer/prompts for consistent UX across all commands.
  */
-export default class CLI {
+export default class CliUtils {
   private static spinner: Ora | null = null;
 
   static startSpinner(text: string): void {
@@ -172,7 +172,7 @@ export default class CLI {
   }
 
   static async promptBoolean(message: string): Promise<boolean> {
-    return CLI.promptSelect<boolean>({
+    return CliUtils.promptSelect<boolean>({
       message,
       choices: [
         { name: 'True', value: true },

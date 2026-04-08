@@ -1,8 +1,9 @@
-import { existsSync, readdirSync, statSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 import { basename, join } from 'path';
+import { z } from 'zod';
 import type { Command } from 'commander';
+import type ConfigStoreService from '@climbr/core/services/configStore/index.js';
 import type {
-  ConfigDefinitionSet,
   ConfigSchema,
 } from '@climbr/core/types/config.js';
 
@@ -13,22 +14,75 @@ interface CommandModule {
 /**
  * CommandDiscoveryService handles finding and loading commands and their
  * configuration schemas from a configurable commands directory.
+ *
+ * Convention:
+ *  - `<commandsDir>/<name>/index.js`  → exports `<name>Command(program)` function
+ *  - `<commandsDir>/<name>/config.js` → exports a z.object() schema as default
+ *  - globalConfigPath                 → exports a z.object() schema for the 'global' scope
+ *
+ * Both command loading and schema discovery are fully recursive, so nested
+ * subcommand directories (e.g. sites/search/) are handled correctly.
  */
 export default class CommandDiscoveryService {
-  private commandsDir: string;
+  private readonly commandsDir: string;
 
-  constructor(commandsDir: string) {
+  private readonly globalConfigPath: string | null;
+
+  public constructor(commandsDir: string, globalConfigPath: string | null = null) {
     this.commandsDir = commandsDir;
+    this.globalConfigPath = globalConfigPath;
+  }
+
+  /**
+   * Discover all Zod config schemas and register them with the ConfigStoreService.
+   * Traverses the full command tree recursively so nested commands with their
+   * own config.js files are picked up correctly.
+   * 
+   * @param {ConfigStoreService} configStore - The store to register schemas into.
+   */
+  public async registerSchemas(configStore: ConfigStoreService): Promise<void> {
+    // Register global schema
+    if (this.globalConfigPath && existsSync(this.globalConfigPath)) {
+      const schema = await CommandDiscoveryService.loadSchema(this.globalConfigPath);
+      if (schema) configStore.registerSchema('global', schema);
+    }
+
+    if (!existsSync(this.commandsDir)) return;
+
+    // Traverse the full directory tree — every directory that contains a config.js
+    // gets its schema registered under its directory name as the scope key.
+    await this.traverseCommandDirectories(this.commandsDir, async (dirPath) => {
+      const configPath = join(dirPath, 'config.js');
+      const schema = await CommandDiscoveryService.loadSchema(configPath);
+      if (schema) {
+        configStore.registerSchema(basename(dirPath), schema);
+      }
+    });
+  }
+
+  /**
+   * Load and register all discovered commands with the given Commander program.
+   * Recurses into subdirectories so nested subcommands are loaded automatically.
+   * 
+   * @param {Command} program - The program to register the commands with.
+   * @returns {Promise<void>} A promise that resolves when all commands are loaded.
+   */
+  public async loadCommands(program: Command): Promise<void> {
+    if (!existsSync(this.commandsDir)) {
+      throw new Error(`Commands directory not found: ${this.commandsDir}`);
+    }
+    await this.processDirectory(this.commandsDir, program);
   }
 
   /**
    * Find the directory for a specific command by name.
-   * @param {string} commandName - The name of the command to find.
+   * Searches recursively through the full command tree.
+   * 
    * @returns {string | null} The path to the command directory, or null if not found.
    */
-  private findCommandDirectory(commandName: string): string | null {
+  public findCommandDirectory(commandName: string): string | null {
     let foundPath: string | null = null;
-    this.traverseCommandDirectories(this.commandsDir, (dirPath) => {
+    this.traverseCommandDirectoriesSync(this.commandsDir, (dirPath) => {
       if (basename(dirPath) === commandName) {
         foundPath = dirPath;
       }
@@ -42,7 +96,7 @@ export default class CommandDiscoveryService {
    */
   public listAvailableConfigs(): string[] {
     const commandNames: string[] = [];
-    this.traverseCommandDirectories(this.commandsDir, (dirPath) => {
+    this.traverseCommandDirectoriesSync(this.commandsDir, (dirPath) => {
       const configPath = join(dirPath, 'config.js');
       if (existsSync(configPath)) {
         commandNames.push(basename(dirPath));
@@ -52,92 +106,8 @@ export default class CommandDiscoveryService {
   }
 
   /**
-   * Load the full configuration schema (per-command).
-   * @returns {Promise<ConfigSchema>} The configuration schema.
-   */
-  public async loadConfigSchema(): Promise<ConfigSchema> {
-    const configSchema: ConfigSchema = { commands: {} };
-
-    const loadConfigFile = async (
-      configPath: string,
-    ): Promise<ConfigDefinitionSet | null> => {
-      try {
-        if (!statSync(configPath)) return null;
-        const configModule = (await import(configPath)) as unknown as {
-          default?: ConfigDefinitionSet;
-        };
-        return configModule.default ?? null;
-      } catch {
-        return null;
-      }
-    };
-
-    // Load command-specific configurations
-    if (!existsSync(this.commandsDir)) return configSchema;
-
-    const commandDirs = readdirSync(this.commandsDir, { withFileTypes: true });
-    const configs = await Promise.all(
-      commandDirs
-        .filter((dir) => dir.isDirectory())
-        .map(async (dir) => {
-          const commandName = dir.name;
-          const commandConfig = await loadConfigFile(
-            join(this.commandsDir, commandName, 'config.js'),
-          );
-          return commandConfig ? { commandName, commandConfig } : null;
-        }),
-    );
-
-    configs.forEach((config) => {
-      if (config) {
-        configSchema.commands[config.commandName] = config.commandConfig;
-      }
-    });
-
-    return configSchema;
-  }
-
-  /**
-   * Load the configuration schema for a single command.
-   * @param {string} commandName - The name of the command.
-   * @returns {Promise<ConfigDefinitionSet | null>} The configuration schema for the command, or null if not found.
-   */
-  public async loadCommandConfigSchema(
-    commandName: string,
-  ): Promise<ConfigDefinitionSet | null> {
-    const cmdPath = this.findCommandDirectory(commandName);
-    if (!cmdPath) return null;
-
-    const configPath = join(cmdPath, 'config.js');
-    if (!existsSync(configPath)) return null;
-
-    try {
-      const configModule = (await import(configPath)) as unknown as {
-        default?: ConfigDefinitionSet;
-      };
-      return configModule.default ?? null;
-    } catch (error) {
-      console.error(
-        `Error loading config for ${commandName}: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return null;
-    }
-  }
-
-  /**
-   * Load and register all discovered commands with the given Commander program.
-   * @param {Command} program - The program to register the commands with.
-   * @returns {Promise<void>} A promise that resolves when all commands are loaded.
-   */
-  public async loadCommands(program: Command): Promise<void> {
-    if (!existsSync(this.commandsDir)) {
-      throw new Error(`Commands directory not found: ${this.commandsDir}`);
-    }
-    await this.processDirectory(this.commandsDir, program);
-  }
-
-  /**
    * Process a directory and load command files.
+   * 
    * @param {string} dirPath - The path of the directory to process.
    * @param {Command} program - The program to register the commands with.
    * @returns {Promise<void>} A promise that resolves when all commands in the directory are processed.
@@ -161,6 +131,7 @@ export default class CommandDiscoveryService {
 
   /**
    * Load a command file and register it with the program.
+   * 
    * @param {string} filePath - The path to the command file.
    * @param {Command} program - The program to register the command with.
    * @returns {Promise<void>} A promise that resolves when the command is loaded.
@@ -170,34 +141,81 @@ export default class CommandDiscoveryService {
     program: Command,
   ): Promise<void> {
     const commandModule = (await import(filePath)) as CommandModule;
-    const commandName = basename(join(filePath, '..'));
+    const command = commandModule.default;
 
-    const exportKey = `${commandName}Command`;
-    if (typeof commandModule[exportKey] !== 'function') return;
-    const commandFn = commandModule[exportKey];
+    if (typeof command !== 'function') return;
 
-    (commandFn as (program: Command) => void)(program);
+    (command as (program: Command) => void)(program);
   }
 
   /**
    * Traverse all command directories recursively.
+   * 
    * @param {string} dirPath - The path of the directory to traverse.
    * @param {(dirPath: string) => void} callback - A function to call for each command directory found.
    */
-  private traverseCommandDirectories(
+  private async traverseCommandDirectories(
+    dirPath: string,
+    callback: (dirPath: string) => Promise<void>,
+  ): Promise<void> {
+    if (!existsSync(dirPath)) return;
+    const entries = readdirSync(dirPath, { withFileTypes: true });
+
+    await Promise.all(
+      entries.map(async (entry) => {
+        const fullPath = join(dirPath, entry.name);
+        if (!entry.isDirectory()) return;
+
+        if (existsSync(join(fullPath, 'index.js'))) {
+          await callback(fullPath);
+        }
+
+        await this.traverseCommandDirectories(fullPath, callback);
+      }),
+    );
+  }
+
+  /**
+   * Synchronous traversal — used for find/list operations that don't need async.
+   */
+  private traverseCommandDirectoriesSync(
     dirPath: string,
     callback: (dirPath: string) => void,
   ): void {
     if (!existsSync(dirPath)) return;
+
     const entries = readdirSync(dirPath, { withFileTypes: true });
+
     entries.forEach((entry) => {
       const fullPath = join(dirPath, entry.name);
-      if (entry.isDirectory()) {
-        if (existsSync(join(fullPath, 'index.js'))) {
-          callback(fullPath);
-        }
-        this.traverseCommandDirectories(fullPath, callback);
+      if (!entry.isDirectory()) return;
+
+      if (existsSync(join(fullPath, 'index.js'))) {
+        callback(fullPath);
       }
+
+      this.traverseCommandDirectoriesSync(fullPath, callback);
     });
+  }
+
+  /**
+   * Load and validate a Zod config schema from a file path.
+   * Returns null if the file doesn't exist, can't be imported, or doesn't
+   * export a z.object() schema.
+   */
+  private static async loadSchema(configPath: string): Promise<ConfigSchema | null> {
+    if (!existsSync(configPath)) return null;
+
+    try {
+      const commandModule = (await import(configPath)) as CommandModule;
+      const schema = commandModule.default;
+      if (schema instanceof z.ZodObject) return schema as ConfigSchema;
+      console.warn(
+        `Config at ${configPath} does not export a z.object() schema — skipping.`,
+      );
+      return null;
+    } catch {
+      return null;
+    }
   }
 }
