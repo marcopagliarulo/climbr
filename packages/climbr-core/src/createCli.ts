@@ -1,15 +1,14 @@
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { dirname, join } from 'path';
 import { Command } from 'commander';
 import CommandDiscoveryService from '@climbr/core/services/commandDiscovery/index.js';
 import ConfigStoreService from '@climbr/core/services/configStore/index.js';
-import { createConfigCommand } from '@climbr/core/commands/config/index.js';
 import type {
   ClimbrOptions,
-  ClimbrPlugin,
   ClimbrInstance,
 } from '@climbr/core/types/framework.js';
 import CliUtils from '@climbr/core/utils/cli.js';
+import ConfigDiscoveryService from './services/configDiscovery/index.js';
+import { fileURLToPath } from 'url';
 
 /**
  * Create and configure a climbr CLI instance.
@@ -37,8 +36,8 @@ export function createCli(options: ClimbrOptions): ClimbrInstance {
     version,
     description = '',
     commandsDir = join(process.cwd(), 'src', 'commands'),
+    configDir,
     configStoreName = name,
-    defaults = {},
   } = options;
 
   const program = new Command();
@@ -53,44 +52,55 @@ export function createCli(options: ClimbrOptions): ClimbrInstance {
       process.env.DEBUG = 'true';
     });
 
-  const configStore = new ConfigStoreService(configStoreName);
+  const configStore = ConfigStoreService.initialize(configStoreName);
 
   // Plugin registry — keyed by command name for override detection
-  const plugins = new Map<string, ClimbrPlugin>();
+  const plugins = new Map<string, Command>();
 
   const instance: ClimbrInstance = {
     program,
     configStore,
 
-    use(plugin: ClimbrPlugin): ClimbrInstance {
-      plugins.set(plugin.name(), plugin);
+    use(command: Command): ClimbrInstance {
+      plugins.set(command.name(), command);
       return instance;
     },
 
     async run(): Promise<void> {
       try {
-        if (existsSync(commandsDir)) {
-          // 1. Discover commands and config schema from the consumer's commandsDir
-          const discovery = new CommandDiscoveryService(
-            commandsDir,
-          );
-          await discovery.registerSchemas(configStore);
+        // Discover configurations.
+        const configDiscovery = new ConfigDiscoveryService(
+          commandsDir,
+          configDir
+        );
 
+        configDiscovery.discover(configStore);
 
-          // 2. Load auto-discovered commands into the program
-          await discovery.loadCommands(program);
+        // Discover commands.
+        const commandDiscovery = new CommandDiscoveryService(
+          commandsDir,
+        );
+        await commandDiscovery.discover(program);
 
-          // 3. Register built-in default commands (unless disabled or overridden)
-          registerDefaults(defaults, plugins, program, configStore);
-
-          // 4. Register any explicitly added plugins (overrides take effect here)
-          for (const plugin of plugins.values()) {
-            program.addCommand(plugin);
-          }
-
-          // 5. Parse and execute
-          await program.parseAsync(process.argv);
+        // Register any command provided as plugin.
+        for (const plugin of plugins.values()) {
+          program.addCommand(plugin);
         }
+
+
+        const dir = dirname(fileURLToPath(import.meta.url));
+
+        const builtInCommandDir = join(dir, 'commands');
+
+        // Discover built-in default commands unless the discover dir
+        // has been already used for all the commands.
+        const builtIncommandDiscovery = new CommandDiscoveryService(
+          builtInCommandDir
+        );
+        await builtIncommandDiscovery.discover(program);
+
+        // 5. Parse and execute
+        await program.parseAsync(process.argv);
       } catch (error) {
         CliUtils.showError(
           error instanceof Error ? error.message : 'Unknown error',
@@ -103,24 +113,3 @@ export function createCli(options: ClimbrOptions): ClimbrInstance {
   return instance;
 }
 
-/**
- * Registers built-in default commands unless they have been disabled or
- * superseded by a consumer plugin with the same name.
- */
-function registerDefaults(
-  defaults: ClimbrOptions['defaults'],
-  plugins: Map<string, ClimbrPlugin>,
-  program: Command,
-  configStore: ConfigStoreService,
-): void {
-  const configOverride = defaults?.config;
-
-  if (configOverride !== false && !plugins.has('config')) {
-    if (configOverride instanceof Command) {
-      // Consumer passed their own Command as the override
-      program.addCommand(configOverride);
-    } else {
-      program.addCommand(createConfigCommand(configStore));
-    }
-  }
-}

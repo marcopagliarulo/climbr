@@ -13,13 +13,16 @@ export { capitalize } from './utils/string.js';
 // Re-export zod for convenience.
 export { z } from 'zod';
 
+// Re-export command for convenience.
+export { Command } from 'commander';
+
 // Types
 export type {
   ClimbrOptions,
-  ClimbrPlugin,
   ClimbrInstance,
 } from './types/framework.js';
 export type {
+  ConfigDefinition,
   ConfigSchema,
   InferConfig,
   ConfigRegistry

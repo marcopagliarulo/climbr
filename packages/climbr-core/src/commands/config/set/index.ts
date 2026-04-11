@@ -55,10 +55,10 @@ export function setAction(
 }
 
 export default function createSetCommand(
+  command: Command,
   configStore: ConfigStoreService,
 ): Command {
-  return new Command('set')
-    .description('Set a configuration value')
+  command
     .argument('[value]', 'Value to set')
     .action((scope, key, value) =>
       setAction(
@@ -68,4 +68,6 @@ export default function createSetCommand(
         value as unknown,
       ),
     );
+
+  return command;
 }

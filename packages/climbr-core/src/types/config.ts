@@ -15,6 +15,11 @@ import { z } from 'zod';
  */
 export type ConfigSchema = z.ZodObject<z.ZodRawShape>;
 
+export type ConfigDefinition = {
+  scope: string;
+  schema: ConfigSchema;
+}
+
 /**
  * The inferred TypeScript type from a ConfigSchema.
  * Use this to get full type safety when reading config values.

@@ -12,6 +12,8 @@ import type {
  * so values on disk are always guaranteed to match the schema.
  */
 export default class ConfigStoreService {
+  private static instance: ConfigStoreService | null;
+
   private store: Configstore;
 
   private registry: ConfigRegistry;
@@ -29,6 +31,32 @@ export default class ConfigStoreService {
    */
   public registerSchema(scope: string, schema: ConfigSchema): void {
     this.registry[scope] = schema;
+  }
+
+  static initialize(name: string): ConfigStoreService {
+    if (!ConfigStoreService.instance) {
+      ConfigStoreService.instance = new ConfigStoreService(name);
+    }
+    return ConfigStoreService.instance;
+  }
+
+  /**
+   * Get the singleton instance of ConfigStoreService.
+   * @returns {ConfigStoreService} The initialized instance of ConfigStoreService.
+   */
+  public static getInstance(name?: string): ConfigStoreService | null {
+    if (!ConfigStoreService.instance) {
+      if (name) {
+        try {
+          ConfigStoreService.instance = new ConfigStoreService(name);
+        } catch (error) {
+          console.error('Failed to initialize ConfigStoreService:', error);
+          ConfigStoreService.instance = null; // Reset instance on failure
+          throw error; // Re-throw the error to handle it upstream
+        }
+      }
+    }
+    return ConfigStoreService.instance;
   }
 
   /**
