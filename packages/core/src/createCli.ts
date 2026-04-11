@@ -1,14 +1,14 @@
-import { dirname, join } from 'path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
-import CommandDiscoveryService from '@climbr/core/services/commandDiscovery/index.js';
-import ConfigStoreService from '@climbr/core/services/configStore/index.js';
+import CommandDiscoveryService from './services/commandDiscovery/index.js';
+import ConfigStoreService from './services/configStore/index.js';
 import type {
   ClimbrOptions,
   ClimbrInstance,
-} from '@climbr/core/types/framework.js';
-import CliUtils from '@climbr/core/utils/cli.js';
+} from './types/framework.js';
+import CliUtils from './utils/cli.js';
 import ConfigDiscoveryService from './services/configDiscovery/index.js';
-import { fileURLToPath } from 'url';
 
 /**
  * Create and configure a climbr CLI instance.
@@ -74,7 +74,7 @@ export function createCli(options: ClimbrOptions): ClimbrInstance {
           configDir
         );
 
-        configDiscovery.discover(configStore);
+        await configDiscovery.discover(configStore);
 
         // Discover commands.
         const commandDiscovery = new CommandDiscoveryService(

@@ -1,6 +1,6 @@
-import { existsSync } from 'fs';
+import { existsSync } from 'node:fs';
 import { Command } from 'commander';
-import type { jsModule } from '@climbr/core/types/generic.js';
+import type { jsModule } from '../../types/generic.js';
 import BaseAutoDiscovery from '../baseAutoDIscovery/index.js';
 
 /**
@@ -55,11 +55,11 @@ export default class CommandDiscoveryService extends BaseAutoDiscovery {
   private async loadCommandFile(
     filePath: string,
     program: Command,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const commandModule = (await import(filePath)) as jsModule;
     const defineCommand = commandModule.default;
 
-    if (typeof defineCommand !== 'function') return;
+    if (typeof defineCommand !== 'function') return false;
 
     const newCommand = defineCommand();
     if (newCommand instanceof Command) {
@@ -67,8 +67,10 @@ export default class CommandDiscoveryService extends BaseAutoDiscovery {
 
       if (!existing.length) {
         program.addCommand(newCommand);
+        return true;
       }
     }
+    return false;
   }
 
 }

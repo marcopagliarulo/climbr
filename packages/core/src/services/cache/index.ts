@@ -40,7 +40,7 @@ export default class CacheService {
     const cacheData = JSON.parse(
       fs.readFileSync(cacheFile, 'utf-8'),
     ) as cacheJson;
-    if (Date.now() > cacheData.expiry) {
+    if (cacheData.expiry != -1 && Date.now() > cacheData.expiry) {
       // Remove expired cache.
       fs.unlinkSync(cacheFile);
       return null;
@@ -62,7 +62,7 @@ export default class CacheService {
     }
     fs.writeFileSync(
       this.getCacheFile(key),
-      JSON.stringify({ data, expiry: Date.now() + ttl * 1000 }),
+      JSON.stringify({ data, expiry: ttl != -1 ? Date.now() + ttl * 1000 : -1 }),
     );
   }
 

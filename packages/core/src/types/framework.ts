@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import ConfigStoreService from '@climbr/core/services/configStore/index.js';
+import ConfigStoreService from '../services/configStore/index.js';
 
 /**
  * Options for configuring the climbr framework instance.

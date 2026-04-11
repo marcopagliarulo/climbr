@@ -24,7 +24,7 @@ import type {
   FormatValue,
   BoxedMessage,
   BoxedMessagePrivate,
-} from '@climbr/core/types/cli.js';
+} from '../types/cli.js';
 
 /**
  * CLI utility class for handling console input/output operations.

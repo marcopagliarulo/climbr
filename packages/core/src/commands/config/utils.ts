@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import CLI from '@climbr/core/utils/cli.js';
-import type ConfigStoreService from '@climbr/core/services/configStore/index.js';
-import type { InquirerChoice, PromptSelect } from '@climbr/core/types/cli.js';
+import CLI from '../../utils/cli.js';
+import type ConfigStoreService from '../../services/configStore/index.js';
+import type { InquirerChoice, PromptSelect } from '../../types/cli.js';
 
 /**
  * Generic single-pick helper — auto-selects if only one choice, prompts otherwise.

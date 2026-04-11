@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type {
   ConfigSchema,
   ConfigRegistry,
-} from '@climbr/core/types/config.js';
+} from '../../types/config.js';
 
 /**
  * ConfigStoreService handles storing, retrieving, and validating configuration.

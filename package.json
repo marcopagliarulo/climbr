@@ -1,9 +1,11 @@
 {
-  "name": "climbr-workspace",
+  "name": "climbr",
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/core",
+    "packages/demo",
+    "packages/create"
   ],
   "scripts": {
     "build": "npm run build --workspaces",

@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import CLI from '@climbr/core/utils/cli.js';
-import type ConfigStoreService from '@climbr/core/services/configStore/index.js';
+import CLI from '../../../utils/cli.js';
+import type ConfigStoreService from '../../../services/configStore/index.js';
 
 export default function createDeleteCommand(
   command: Command,

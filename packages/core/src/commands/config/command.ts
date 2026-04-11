@@ -1,9 +1,9 @@
 import { Command } from 'commander';
-import createGetCommand from '@climbr/core/commands/config/get/index.js';
-import createSetCommand from '@climbr/core/commands/config/set/index.js';
-import createDeleteCommand from '@climbr/core/commands/config/delete/index.js';
-import { pickScope, pickKey } from '@climbr/core/commands/config/utils.js';
-import ConfigStoreService from '@climbr/core/services/configStore/index.js';
+import ConfigStoreService from '../../services/configStore/index.js';
+import createGetCommand from './get/index.js';
+import createSetCommand from './set/index.js';
+import createDeleteCommand from './delete/index.js';
+import { pickScope, pickKey } from './utils.js';
 
 type configCommandCallback =  (a: Command, b: ConfigStoreService) => Command;
 function configCommandFactory(

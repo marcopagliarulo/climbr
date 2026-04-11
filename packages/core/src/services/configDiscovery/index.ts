@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs';
-import BaseAutoDiscovery from '@climbr/core/services/baseAutoDIscovery/index.js';
-import type ConfigStoreService from '@climbr/core/services/configStore/index.js';
+import BaseAutoDiscovery from '../baseAutoDIscovery/index.js';
+import type ConfigStoreService from '../configStore/index.js';
 import type {
   ConfigDefinition,
-} from '@climbr/core/types/config.js';
-import type { jsModule } from '@climbr/core/types/generic.js';
+} from '../../types/config.js';
+import type { jsModule } from '../../types/generic.js';
 
 /**
  * ConfigDiscoveryService handles finding and loading 

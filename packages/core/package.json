@@ -12,7 +12,7 @@
     }
   },
   "files": [
-    "dist"
+    "./dist"
   ],
   "engines": {
     "node": ">=18.0.0"
@@ -31,5 +31,8 @@
     "ora": "^9.3.0",
     "zod": "^4.3.6"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {},
+  "keywords": [],
+  "author": ""
 }
