@@ -46,18 +46,18 @@ export default class ConfigDiscoveryService extends BaseAutoDiscovery{
       existsSync(this.commandsDir) ? this.commandsDir : '',
     ];
 
-    discoveryDirectories.filter(Boolean).forEach(async (dir: string) => {
-      // Traverse the full directory tree — every directory that contains a config.js
-      // gets its schema registered under its directory name as the scope key.
-      await this.traverseDirectories(dir, async (configPath) => {
-        const definition = await this.loadDefinition(configPath);
-        if (definition) {
-          configStore.registerSchema(definition.scope, definition.schema);
-        }
-      });
-
-    });
-
+    await Promise.all(
+      discoveryDirectories.filter(Boolean).map(async (dir: string) => {
+        // Traverse the full directory tree — every directory that contains a config.js
+        // gets its schema registered under its directory name as the scope key.
+        await this.traverseDirectories(dir, async (configPath) => {
+          const definition = await this.loadDefinition(configPath);
+          if (definition) {
+            configStore.registerSchema(definition.scope, definition.schema);
+          }
+        });
+      })
+    );
   }
 
   /**

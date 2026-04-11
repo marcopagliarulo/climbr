@@ -21,7 +21,10 @@ export default defineConfig(
   {
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        project: [
+          './packages/core/tsconfig.json',
+          './packages/demo/tsconfig.build.json',
+        ],
         tsconfigRootDir: dirname(fileURLToPath(import.meta.url)),
       },
     },
@@ -31,8 +34,8 @@ export default defineConfig(
           alwaysTryTypes: true,
           project: [
             './tsconfig.json',
-            './packages/climbr-core/tsconfig.json',
-            './packages/climbr-example/tsconfig.json',
+            './packages/core/tsconfig.json',
+            './packages/demo/tsconfig.json',
           ],
         }),
       ],

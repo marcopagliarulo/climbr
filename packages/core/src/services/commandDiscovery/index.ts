@@ -61,7 +61,7 @@ export default class CommandDiscoveryService extends BaseAutoDiscovery {
 
     if (typeof defineCommand !== 'function') return false;
 
-    const newCommand = defineCommand();
+    const newCommand = (defineCommand as () => unknown)();
     if (newCommand instanceof Command) {
       const existing = program.commands.filter(c => c.name() === newCommand.name());
 
