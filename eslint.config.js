@@ -26,6 +26,8 @@ export default defineConfig(
           './packages/demo/tsconfig.build.json',
         ],
         tsconfigRootDir: dirname(fileURLToPath(import.meta.url)),
+        warnOnUnsupportedTypeScriptVersion: false,
+        noWarnOnMultipleProjects: true,
       },
     },
     settings: {
