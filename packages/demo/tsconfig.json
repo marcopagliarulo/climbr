@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "outDir": "dist",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@climbr/core": ["../core/src/index.ts"],
+      "@climbr/core/*": ["../core/src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

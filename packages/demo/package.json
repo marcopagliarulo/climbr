@@ -1,0 +1,22 @@
+{
+  "name": "@climbr/demo",
+  "version": "1.0.0",
+  "description": "Demo CLI built with @climbr/core",
+  "type": "module",
+  "bin": {
+    "climbr-demo": "./dist/bin/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "start": "tsx src/bin/index.ts",
+    "lint": "eslint ./src",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@climbr/core": "^0.1.0"
+  },
+  "license": "MIT"
+}
