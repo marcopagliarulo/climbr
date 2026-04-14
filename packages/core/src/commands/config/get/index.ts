@@ -8,13 +8,10 @@ export default function createGetCommand(
 ): Command {
   command.action((scope: string, key: string) => {
     try {
-      const value = configStore.get(
-        scope,
-        key,
-      ) as string;
+      const value = configStore.get(scope, key) as string;
 
       CLI.showBoxedInfoMessage({
-        message: `Key: ${key}\nValue: ${CLI.formatValue({ value  })}`,
+        message: `Key: ${key}\nValue: ${CLI.formatValue({ value })}`,
         title: 'Configuration Value',
       });
     } catch (error) {

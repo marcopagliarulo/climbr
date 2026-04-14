@@ -18,7 +18,7 @@ export type ConfigSchema = z.ZodObject<z.ZodRawShape>;
 export type ConfigDefinition = {
   scope: string;
   schema: ConfigSchema;
-}
+};
 
 /**
  * The inferred TypeScript type from a ConfigSchema.

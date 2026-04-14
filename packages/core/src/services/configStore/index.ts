@@ -1,9 +1,6 @@
 import Configstore from 'configstore';
 import { z } from 'zod';
-import type {
-  ConfigSchema,
-  ConfigRegistry,
-} from '../../types/config.js';
+import type { ConfigSchema, ConfigRegistry } from '../../types/config.js';
 
 /**
  * ConfigStoreService handles storing, retrieving, and validating configuration.
@@ -111,7 +108,8 @@ export default class ConfigStoreService {
 
     const shape = schema.shape as Record<string, z.ZodTypeAny>;
     const fieldSchema = shape[key];
-    if (!fieldSchema) throw new Error(`Key '${key}' does not exist in scope '${scope}'`);
+    if (!fieldSchema)
+      throw new Error(`Key '${key}' does not exist in scope '${scope}'`);
 
     try {
       const result = fieldSchema.safeParse(value);
@@ -123,12 +121,13 @@ export default class ConfigStoreService {
         error.issues.forEach((issue: z.core.$ZodIssue) => {
           messages.push(issue.message);
         });
-      }
-      else if (error instanceof Error){
+      } else if (error instanceof Error) {
         messages.push(error.message);
       }
-      
-      throw new Error(`Invalid value for '${key}': ${messages.join('\n')}`, { cause: error });
+
+      throw new Error(`Invalid value for '${key}': ${messages.join('\n')}`, {
+        cause: error,
+      });
     }
   }
 
@@ -138,10 +137,10 @@ export default class ConfigStoreService {
    * @param {string} key - The configuration key to delete.
    */
   public delete(scope: string, key: string): void {
-    const current = this.store.get<ConfigSchema>(scope) ?? { key: ''};
-    
+    const current = this.store.get<ConfigSchema>(scope) ?? { key: '' };
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { [key]: _, ...rest } = current as { [key:string]: unknown};
+    const { [key]: _, ...rest } = current as { [key: string]: unknown };
     this.store.set(scope, rest);
   }
 
@@ -196,21 +195,16 @@ export default class ConfigStoreService {
     return this.getKeys(scope).includes(key);
   }
 
-  public validateScope (
-    scope: string,
-  ): void {
+  public validateScope(scope: string): void {
     if (!this.hasScope(scope)) {
       const available = this.getScopes().join(', ');
       throw new Error(
         `Invalid configurable scope: '${scope}'. Available: ${available}`,
       );
     }
-  };
+  }
 
-  public validateConfigKey(
-    scope: string,
-    key: string,
-  ): void {
+  public validateConfigKey(scope: string, key: string): void {
     if (this.hasScope(scope)) {
       if (!this.hasKey(scope, key)) {
         throw new Error(
@@ -218,6 +212,5 @@ export default class ConfigStoreService {
         );
       }
     }
-  };
-
+  }
 }

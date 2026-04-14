@@ -3,10 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import CommandDiscoveryService from './services/commandDiscovery/index.js';
 import ConfigStoreService from './services/configStore/index.js';
-import type {
-  ClimbrOptions,
-  ClimbrInstance,
-} from './types/framework.js';
+import type { ClimbrOptions, ClimbrInstance } from './types/framework.js';
 import CliUtils from './utils/cli.js';
 import ConfigDiscoveryService from './services/configDiscovery/index.js';
 
@@ -71,22 +68,19 @@ export function createCli(options: ClimbrOptions): ClimbrInstance {
         // Discover configurations.
         const configDiscovery = new ConfigDiscoveryService(
           commandsDir,
-          configDir
+          configDir,
         );
 
         await configDiscovery.discover(configStore);
 
         // Discover commands.
-        const commandDiscovery = new CommandDiscoveryService(
-          commandsDir,
-        );
+        const commandDiscovery = new CommandDiscoveryService(commandsDir);
         await commandDiscovery.discover(program);
 
         // Register any command provided as plugin.
         for (const plugin of plugins.values()) {
           program.addCommand(plugin);
         }
-
 
         const dir = dirname(fileURLToPath(import.meta.url));
 
@@ -95,11 +89,10 @@ export function createCli(options: ClimbrOptions): ClimbrInstance {
         // Discover built-in default commands unless the discover dir
         // has been already used for all the commands.
         const builtIncommandDiscovery = new CommandDiscoveryService(
-          builtInCommandDir
+          builtInCommandDir,
         );
         await builtIncommandDiscovery.discover(program);
 
-        // 5. Parse and execute
         await program.parseAsync(process.argv);
       } catch (error) {
         CliUtils.showError(
@@ -112,4 +105,3 @@ export function createCli(options: ClimbrOptions): ClimbrInstance {
 
   return instance;
 }
-

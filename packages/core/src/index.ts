@@ -17,15 +17,12 @@ export { z } from 'zod';
 export { Command } from 'commander';
 
 // Types
-export type {
-  ClimbrOptions,
-  ClimbrInstance,
-} from './types/framework.js';
+export type { ClimbrOptions, ClimbrInstance } from './types/framework.js';
 export type {
   ConfigDefinition,
   ConfigSchema,
   InferConfig,
-  ConfigRegistry
+  ConfigRegistry,
 } from './types/config.js';
 export type {
   InquirerChoice,

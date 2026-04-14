@@ -18,9 +18,7 @@ export default function createDeleteCommand(
       }
 
       configStore.delete(scope, key);
-      CLI.showSuccess(
-        `Deleted '${key}' from '${scope}' configuration.`,
-      );
+      CLI.showSuccess(`Deleted '${key}' from '${scope}' configuration.`);
     } catch (error) {
       CLI.showError(error instanceof Error ? error.message : 'Unknown error');
     }

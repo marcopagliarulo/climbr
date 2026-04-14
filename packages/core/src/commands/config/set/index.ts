@@ -10,7 +10,6 @@ export function setAction(
   value: unknown,
 ): void {
   try {
-
     const inputValue: unknown = value;
 
     configStore.set(scope, key, value);
@@ -39,11 +38,9 @@ export function setAction(
     })();
 
     CLI.showBoxedSuccessMessage({
-      message: [
-        `Scope: ${scope}`,
-        `Key: ${key}`,
-        `Value: ${valueString}`,
-      ].join('\n'),
+      message: [`Scope: ${scope}`, `Key: ${key}`, `Value: ${valueString}`].join(
+        '\n',
+      ),
       title: 'Configuration Updated',
     });
   } catch (error) {
@@ -61,12 +58,7 @@ export default function createSetCommand(
   command
     .argument('[value]', 'Value to set')
     .action((scope, key, value) =>
-      setAction(
-        configStore,
-        scope as string,
-        key as string,
-        value as unknown,
-      ),
+      setAction(configStore, scope as string, key as string, value as unknown),
     );
 
   return command;

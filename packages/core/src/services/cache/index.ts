@@ -62,7 +62,10 @@ export default class CacheService {
     }
     fs.writeFileSync(
       this.getCacheFile(key),
-      JSON.stringify({ data, expiry: ttl != -1 ? Date.now() + ttl * 1000 : -1 }),
+      JSON.stringify({
+        data,
+        expiry: ttl != -1 ? Date.now() + ttl * 1000 : -1,
+      }),
     );
   }
 

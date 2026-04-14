@@ -5,12 +5,13 @@ import createSetCommand from './set/index.js';
 import createDeleteCommand from './delete/index.js';
 import { pickScope, pickKey } from './utils.js';
 
-type configCommandCallback =  (a: Command, b: ConfigStoreService) => Command;
+type configCommandCallback = (a: Command, b: ConfigStoreService) => Command;
 function configCommandFactory(
   name: string,
   description: string,
   configStore: ConfigStoreService,
-  callback: configCommandCallback ): Command {
+  callback: configCommandCallback,
+): Command {
   const command = new Command(name)
     .description(description)
     .argument('[scope]', 'Command name or "global"')
@@ -39,14 +40,36 @@ export default function createConfigCommand(): Command | null {
         const key = actionCommand.processedArgs[1] as string;
 
         const pickedScope = scope || (await pickScope(configStore, 'get'));
-        const pickedKey = key || (await pickKey(configStore, pickedScope, 'get'));
+        const pickedKey =
+          key || (await pickKey(configStore, pickedScope, 'get'));
 
         actionCommand.processedArgs[0] = pickedScope;
         actionCommand.processedArgs[1] = pickedKey;
       })
-      .addCommand(configCommandFactory('get', 'Get a configuration value', configStore, createGetCommand))
-      .addCommand(configCommandFactory('set', 'Set a configuration value', configStore, createSetCommand))
-      .addCommand(configCommandFactory('delete', 'Delete a configuration value', configStore, createDeleteCommand));
+      .addCommand(
+        configCommandFactory(
+          'get',
+          'Get a configuration value',
+          configStore,
+          createGetCommand,
+        ),
+      )
+      .addCommand(
+        configCommandFactory(
+          'set',
+          'Set a configuration value',
+          configStore,
+          createSetCommand,
+        ),
+      )
+      .addCommand(
+        configCommandFactory(
+          'delete',
+          'Delete a configuration value',
+          configStore,
+          createDeleteCommand,
+        ),
+      );
   }
 
   return null;

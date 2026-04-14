@@ -6,7 +6,10 @@ import type { InquirerChoice, PromptSelect } from '../../types/cli.js';
 /**
  * Generic single-pick helper — auto-selects if only one choice, prompts otherwise.
  */
-const pickOption = async <T>({ message, choices }: PromptSelect<T>): Promise<T> => {
+const pickOption = async <T>({
+  message,
+  choices,
+}: PromptSelect<T>): Promise<T> => {
   if (choices.length === 1) {
     const choice = choices.shift() as InquirerChoice<T>;
     return choice.value;
@@ -14,12 +17,18 @@ const pickOption = async <T>({ message, choices }: PromptSelect<T>): Promise<T> 
   return CLI.promptSelect({ message, choices });
 };
 
-export const pickScope = async (configStore: ConfigStoreService, action: string): Promise<string> => {
+export const pickScope = async (
+  configStore: ConfigStoreService,
+  action: string,
+): Promise<string> => {
   const choices = configStore.getScopes().map((s) => ({
     name: s.charAt(0).toUpperCase() + s.slice(1),
     value: s,
   }));
-  return pickOption<string>({ message: `Select a scope to ${action}:`, choices });
+  return pickOption<string>({
+    message: `Select a scope to ${action}:`,
+    choices,
+  });
 };
 
 export const pickKey = async (
@@ -27,7 +36,9 @@ export const pickKey = async (
   scope: string,
   action: string,
 ): Promise<string> => {
-  const choices = configStore.getKeys(scope).map((k) => ({ name: k, value: k }));
+  const choices = configStore
+    .getKeys(scope)
+    .map((k) => ({ name: k, value: k }));
   return pickOption<string>({ message: `Select a key to ${action}:`, choices });
 };
 
@@ -42,7 +53,7 @@ export const promptForZodField = async (
   const message = `Enter value for '${key}':`;
 
   // Unwrap ZodDefault to get the inner type and default value
-//  let innerSchema = fieldSchema;
+  //  let innerSchema = fieldSchema;
   let defaultValue: unknown;
 
   if (fieldSchema instanceof z.ZodDefault) {
