@@ -33,7 +33,6 @@ function configCommandFactory(
  */
 export default function createConfigCommand(): Command | null {
   const configStore = ConfigStoreService.getInstance();
-  console.log(configStore.getScopes());
   if (configStore && configStore.getScopes().length) {
     return new Command('config')
       .description('Manage CLI configuration')

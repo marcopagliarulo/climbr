@@ -54,9 +54,8 @@ export default class ConfigStoreService {
         try {
           ConfigStoreService.instance = new ConfigStoreService(name);
         } catch (error) {
-          console.error('Failed to initialize ConfigStoreService:', error);
-          ConfigStoreService.instance = null; // Reset instance on failure
-          throw error; // Re-throw the error to handle it upstream
+          ConfigStoreService.instance = null;
+          throw new Error('Failed to initialize ConfigStoreService', { cause: error });
         }
       }
     }

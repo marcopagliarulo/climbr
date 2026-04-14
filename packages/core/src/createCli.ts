@@ -1,5 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import chalk from 'chalk';
 import { Command } from 'commander';
 import CommandDiscoveryService from './services/commandDiscovery/index.js';
 import ConfigStoreService from './services/configStore/index.js';
@@ -49,7 +50,10 @@ export function createCli(options: ClimbrOptions): ClimbrInstance {
     .option('-d, --debug', 'Enable debug mode', false)
     .on('option:debug', () => {
       process.env.DEBUG = 'true';
-    });
+    })
+    .configureOutput({
+      outputError: (str, write) => write(chalk.red(str)),
+    })
 
   const configStore = ConfigStoreService.initialize(configStoreName);
 

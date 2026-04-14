@@ -49,9 +49,10 @@ export default class CliUtils {
   }
 
   static showError(message: string, exit: boolean = true): void {
-    console.error(chalk.red('Error:'), message);
     if (exit) {
-      program.error('');
+      program.error(message);
+    } else {
+      console.error(chalk.red('Error:'), message);
     }
   }
 
