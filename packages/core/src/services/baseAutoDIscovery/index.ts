@@ -2,35 +2,24 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * CommandDiscoveryService handles finding and loading commands and their
- * configuration schemas from a configurable commands directory.
- *
- * Convention:
- *  - `<commandsDir>/<name>/command.js/ts`  → exports default function
- *
- * Command discovery is fully recursive, so nested
- * subcommand directories (e.g. sites/search/) are handled correctly.
+ * Base class for filesystem-based auto-discovery.
+ * Subclasses set `ACCEPTED_FILES` to control which filenames trigger the callback
+ * during recursive directory traversal.
  */
 export default abstract class BaseAutoDiscovery {
   protected ACCEPTED_FILES: string[] = [];
 
   public constructor() {}
 
-  /**
-   * Verify if the filename is an accepted filename.
-   * @param {string} name - The filename to check.
-   * @param {string[]} accepted - Array of accepted filenames.
-   * @returns {boolean} If the filename is valid or not.
-   */
   private acceptedFile(name: string, accepted: string[]): boolean {
     return accepted.includes(name);
   }
 
   /**
-   * Traverse all command directories recursively.
+   * Traverse a directory tree recursively, invoking the callback for each accepted file found.
    *
-   * @param {string} dirPath - The path of the directory to traverse.
-   * @param {(dirPath: string) => void} callback - A function to call for each command directory found.
+   * @param dirPath - The root directory to start traversal from.
+   * @param callback - Called with the full path of each accepted file.
    */
   protected async traverseDirectories(
     dirPath: string,

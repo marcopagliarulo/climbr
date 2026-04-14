@@ -17,21 +17,15 @@ export default class CacheService {
     this.cacheDir = cacheDir;
   }
 
-  /**
-   * Get the file path for a specific cache key.
-   * @param {string} key - The cache key.
-   * @returns {string} The file path for the cache file.
-   */
   private getCacheFile(key: string): string {
     return path.join(this.cacheDir, `${key}.json`);
   }
 
   /**
    * Retrieve cached data for a specific key.
-   * If the cache has expired or does not exist, returns `null`.
-   * @template T
-   * @param {string} key - The cache key.
-   * @returns {T | null} The cached data, or `null` if not found or expired.
+   * Returns `null` if the entry does not exist or has expired.
+   * @param key - The cache key.
+   * @returns The cached data, or `null` if not found or expired.
    */
   get<T>(key: string): T | null {
     const cacheFile = this.getCacheFile(key);
@@ -50,11 +44,10 @@ export default class CacheService {
 
   /**
    * Store data in the cache with a time-to-live (TTL).
-   * @template T
-   * @param {string} key - The cache key.
-   * @param {T} data - The data to cache.
-   * @param {number} ttl - The time-to-live for the cache in seconds.
-   * @returns {void} A promise that resolves when the data is cached.
+   * Pass `ttl = -1` to cache indefinitely.
+   * @param key - The cache key.
+   * @param data - The data to cache.
+   * @param ttl - Time-to-live in seconds, or `-1` for no expiry.
    */
   set<T>(key: string, data: T, ttl: number): void {
     if (!fs.existsSync(this.cacheDir)) {
@@ -70,9 +63,8 @@ export default class CacheService {
   }
 
   /**
-   * Clear a specific cache entry by key.
-   * @param {string} key - The cache key to clear.
-   * @returns {void} A promise that resolves when the cache is cleared.
+   * Delete a specific cache entry by key. No-op if the entry does not exist.
+   * @param key - The cache key to delete.
    */
   clear(key: string): void {
     const cacheFile = this.getCacheFile(key);
@@ -82,9 +74,7 @@ export default class CacheService {
   }
 
   /**
-   * Clear all cached data.
-   * Deletes the entire cache directory and its contents.
-   * @returns {void} A promise that resolves when all cache is cleared.
+   * Delete all cached data by removing the entire cache directory.
    */
   clearAll(): void {
     if (fs.existsSync(this.cacheDir)) {

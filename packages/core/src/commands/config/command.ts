@@ -29,10 +29,12 @@ function configCommandFactory(
  * import { createConfigCommand } from 'climbr-config';
  * cli.use(createConfigCommand(cli.configStore));
  * ```
+ * @returns The built-in `config` Command, or `null` if the store is not initialized.
  */
 export default function createConfigCommand(): Command | null {
   const configStore = ConfigStoreService.getInstance();
-  if (configStore) {
+  console.log(configStore.getScopes());
+  if (configStore && configStore.getScopes().length) {
     return new Command('config')
       .description('Manage CLI configuration')
       .hook('preAction', async (_thisCommand, actionCommand) => {

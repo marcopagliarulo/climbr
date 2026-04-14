@@ -4,11 +4,11 @@ import type { jsModule } from '../../types/generic.js';
 import BaseAutoDiscovery from '../baseAutoDIscovery/index.js';
 
 /**
- * CommandDiscoveryService handles finding and loading commands and their
- * configuration schemas from a configurable commands directory.
+ * CommandDiscoveryService handles finding and loading commands from a
+ * configurable commands directory and registering them with Commander.
  *
  * Convention:
- *  - `<commandsDir>/<name>/command.js/ts`  → exports default function
+ *  - `<commandsDir>/<name>/command.js/ts`  → exports a default function returning a `Command`
  *
  * Command discovery is fully recursive, so nested
  * subcommand directories (e.g. sites/search/) are handled correctly.
@@ -23,29 +23,21 @@ export default class CommandDiscoveryService extends BaseAutoDiscovery {
   }
 
   /**
-   * Discover all Zod config schemas and register them with the ConfigStoreService.
-   * Traverses the full command tree recursively so nested commands with their
-   * own config.js files are picked up correctly.
+   * Discover all command files and register them with the Commander program.
+   * Traverses the full command tree recursively so nested subcommand directories
+   * are picked up correctly.
    *
-   * @param {ConfigStoreService} configStore - The store to register schemas into.
+   * @param program - The Commander program to register commands into.
+   * @returns A promise that resolves when all command files have been processed.
    */
   public async discover(program: Command): Promise<void> {
     if (!existsSync(this.commandsDir)) return;
 
-    // Traverse the full directory tree — every directory that contains a config.js
-    // gets its schema registered under its directory name as the scope key.
     await this.traverseDirectories(this.commandsDir, async (configPath) => {
       await this.loadCommandFile(configPath, program);
     });
   }
 
-  /**
-   * Load a command file and register it with the program.
-   *
-   * @param {string} filePath - The path to the command file.
-   * @param {Command} program - The program to register the command with.
-   * @returns {Promise<void>} A promise that resolves when the command is loaded.
-   */
   private async loadCommandFile(
     filePath: string,
     program: Command,

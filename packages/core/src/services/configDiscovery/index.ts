@@ -10,9 +10,8 @@ import type { jsModule } from '../../types/generic.js';
  * and global config directory if provided.
  *
  * Convention:
- *  - `<commandsDir>/<name>/index.js`  → exports `<name>Command(program)` function
- *  - `<commandsDir>/<name>/config.js` → exports a z.object() schema as default
- *  - globalConfigPath                 → exports a z.object() schema for the 'global' scope
+ *  - `<commandsDir>/<name>/config.js` → exports a `{ scope, schema }` object as default
+ *  - globalConfigPath                 → exports a `{ scope, schema }` object for the 'global' scope
  *
  * Both command loading and schema discovery are fully recursive, so nested
  * subcommand directories (e.g. sites/search/) are handled correctly.
@@ -33,7 +32,8 @@ export default class ConfigDiscoveryService extends BaseAutoDiscovery {
    * Traverses the full command tree recursively so nested commands with their
    * own config.js files are picked up correctly.
    *
-   * @param {ConfigStoreService} configStore - The store to register schemas into.
+   * @param configStore - The store to register schemas into.
+   * @returns A promise that resolves when all config files have been processed.
    */
   public async discover(configStore: ConfigStoreService): Promise<void> {
     const discoveryDirectories = [
@@ -56,17 +56,12 @@ export default class ConfigDiscoveryService extends BaseAutoDiscovery {
   }
 
   /**
-   * List all command names that have a config.js/ts file.
-   * @returns {string[]} An array of command names.
-   */
-  public listAvailableConfigs(): string[] {
-    return [];
-  }
-
-  /**
-   * Load and validate a Zod config schema from a file path.
-   * Returns null if the file doesn't exist, can't be imported, or doesn't
-   * export a z.object() schema.
+   * Load and validate a config definition from a file path.
+   * Returns `null` if the file doesn't exist, can't be imported, or doesn't
+   * export a valid `{ scope, schema }` object.
+   *
+   * @param configPath - The path to the config file to load.
+   * @returns The config definition, or `null` if the file is invalid or missing.
    */
   private async loadDefinition(
     configPath: string,

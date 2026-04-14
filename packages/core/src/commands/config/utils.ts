@@ -3,9 +3,7 @@ import CLI from '../../utils/cli.js';
 import type ConfigStoreService from '../../services/configStore/index.js';
 import type { InquirerChoice, PromptSelect } from '../../types/cli.js';
 
-/**
- * Generic single-pick helper — auto-selects if only one choice, prompts otherwise.
- */
+// Auto-selects if only one choice, prompts otherwise.
 const pickOption = async <T>({
   message,
   choices,
@@ -17,6 +15,13 @@ const pickOption = async <T>({
   return CLI.promptSelect({ message, choices });
 };
 
+/**
+ * Prompt the user to select a registered config scope.
+ * Auto-selects if only one scope is registered.
+ * @param configStore - The config store to read scopes from.
+ * @param action - Verb shown in the prompt (e.g. `'get'`, `'set'`).
+ * @returns The selected scope name.
+ */
 export const pickScope = async (
   configStore: ConfigStoreService,
   action: string,
@@ -31,6 +36,14 @@ export const pickScope = async (
   });
 };
 
+/**
+ * Prompt the user to select a key within a config scope.
+ * Auto-selects if the scope contains only one key.
+ * @param configStore - The config store to read keys from.
+ * @param scope - The scope to list keys for.
+ * @param action - Verb shown in the prompt (e.g. `'get'`, `'set'`).
+ * @returns The selected key name.
+ */
 export const pickKey = async (
   configStore: ConfigStoreService,
   scope: string,
@@ -43,8 +56,11 @@ export const pickKey = async (
 };
 
 /**
- * Introspect a Zod schema to determine the best prompt type and call the
- * appropriate CLI prompt method. Returns the validated value.
+ * Introspect a Zod schema to determine the best prompt type and invoke the
+ * appropriate CLI prompt method.
+ * @param fieldSchema - The Zod schema for the field being prompted.
+ * @param key - The field name, used in the prompt message.
+ * @returns The value entered by the user.
  */
 export const promptForZodField = async (
   fieldSchema: z.ZodTypeAny,
@@ -53,7 +69,6 @@ export const promptForZodField = async (
   const message = `Enter value for '${key}':`;
 
   // Unwrap ZodDefault to get the inner type and default value
-  //  let innerSchema = fieldSchema;
   let defaultValue: unknown;
 
   if (fieldSchema instanceof z.ZodDefault) {

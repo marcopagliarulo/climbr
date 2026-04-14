@@ -3,6 +3,13 @@ import { Command } from 'commander';
 import CLI from '../../../utils/cli.js';
 import type ConfigStoreService from '../../../services/configStore/index.js';
 
+/**
+ * Validate and persist a config value, then display a confirmation message.
+ * @param configStore - The config store to write to.
+ * @param scope - The config scope.
+ * @param key - The config key.
+ * @param value - The value to set.
+ */
 export function setAction(
   configStore: ConfigStoreService,
   scope: string,
@@ -51,6 +58,12 @@ export function setAction(
   }
 }
 
+/**
+ * Wire the `set` action onto the given Commander command.
+ * @param command - The pre-configured Commander command to attach the action to.
+ * @param configStore - The config store to write values to.
+ * @returns The command with the action attached.
+ */
 export default function createSetCommand(
   command: Command,
   configStore: ConfigStoreService,

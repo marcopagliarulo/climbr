@@ -26,6 +26,8 @@ import ConfigDiscoveryService from './services/configDiscovery/index.js';
  *
  * cli.run();
  * ```
+ * @param options - Configuration options for the CLI instance.
+ * @returns A `ClimbrInstance` with `.use()` and `.run()` methods.
  */
 export function createCli(options: ClimbrOptions): ClimbrInstance {
   const {

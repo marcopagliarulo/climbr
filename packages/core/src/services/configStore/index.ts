@@ -22,14 +22,19 @@ export default class ConfigStoreService {
 
   /**
    * Register a Zod schema for a given scope.
-   * Called by the framework during command discovery.
-   * @param {string} scope - 'global' or a command name.
-   * @param {ConfigSchema} schema - The Zod schema for this scope.
+   * Called by the framework during config discovery.
+   * @param scope - `'global'` or a command name.
+   * @param schema - The Zod schema for this scope.
    */
   public registerSchema(scope: string, schema: ConfigSchema): void {
     this.registry[scope] = schema;
   }
 
+  /**
+   * Create (or return the existing) singleton instance.
+   * @param name - The store name used to namespace config on disk.
+   * @returns The singleton `ConfigStoreService` instance.
+   */
   static initialize(name: string): ConfigStoreService {
     if (!ConfigStoreService.instance) {
       ConfigStoreService.instance = new ConfigStoreService(name);
@@ -38,8 +43,10 @@ export default class ConfigStoreService {
   }
 
   /**
-   * Get the singleton instance of ConfigStoreService.
-   * @returns {ConfigStoreService} The initialized instance of ConfigStoreService.
+   * Return the singleton instance, optionally initializing it if a name is given.
+   * Returns `null` if the store has not been initialized yet and no name is provided.
+   * @param name - Store name passed on first call if the instance doesn't exist yet.
+   * @returns The singleton instance, or `null` if not yet initialized.
    */
   public static getInstance(name?: string): ConfigStoreService | null {
     if (!ConfigStoreService.instance) {
@@ -57,10 +64,9 @@ export default class ConfigStoreService {
   }
 
   /**
-   * Get the inferred TypeScript type for a scope's schema.
-   * Merges stored values with Zod defaults.
-   * @param {string} scope - 'global' or a command name.
-   * @returns The parsed config object for this scope.
+   * Return all configuration values for a scope, merging stored values with Zod defaults.
+   * @param scope - `'global'` or a command name.
+   * @returns The parsed config object for the scope.
    */
   public getAll<T extends ConfigSchema>(scope: string): z.infer<T> {
     const schema = this.registry[scope];
@@ -70,11 +76,10 @@ export default class ConfigStoreService {
   }
 
   /**
-   * Get a single configuration value for a scope/key pair.
-   * Falls back to the Zod default if not set.
-   * @param {string} scope - 'global' or a command name.
-   * @param {string} key - The configuration key.
-   * @returns The value, or undefined if not set and no default.
+   * Return a single configuration value, falling back to the Zod default if unset.
+   * @param scope - `'global'` or a command name.
+   * @param key - The configuration key.
+   * @returns The stored or default value, or `undefined` if neither exists.
    */
   public get(scope: string, key: string): unknown {
     if (this.hasScope(scope) && this.hasKey(scope, key)) {
@@ -96,11 +101,11 @@ export default class ConfigStoreService {
   }
 
   /**
-   * Set a configuration value, validating it against the registered Zod schema.
-   * Throws a descriptive error if validation fails.
-   * @param {string} scope - 'global' or a command name.
-   * @param {string} key - The configuration key.
-   * @param {unknown} value - The value to set.
+   * Persist a configuration value after validating it against the registered Zod schema.
+   * Throws if the scope/key doesn't exist or the value fails validation.
+   * @param scope - `'global'` or a command name.
+   * @param key - The configuration key.
+   * @param value - The value to set.
    */
   public set(scope: string, key: string, value: unknown): void {
     const schema = this.registry[scope];
@@ -133,8 +138,8 @@ export default class ConfigStoreService {
 
   /**
    * Delete a single configuration key from a scope.
-   * @param {string} scope - 'global' or a command name.
-   * @param {string} key - The configuration key to delete.
+   * @param scope - `'global'` or a command name.
+   * @param key - The configuration key to delete.
    */
   public delete(scope: string, key: string): void {
     const current = this.store.get<ConfigSchema>(scope) ?? { key: '' };
@@ -145,17 +150,17 @@ export default class ConfigStoreService {
   }
 
   /**
-   * Get all registered scope names.
-   * @returns {string[]} Array of scope names.
+   * Return all registered scope names.
+   * @returns Array of scope names.
    */
   public getScopes(): string[] {
     return Object.keys(this.registry);
   }
 
   /**
-   * Get all key names for a given scope.
-   * @param {string} scope - 'global' or a command name.
-   * @returns {string[]} Array of key names.
+   * Return all key names defined in a scope's schema.
+   * @param scope - `'global'` or a command name.
+   * @returns Array of key names.
    */
   public getKeys(scope: string): string[] {
     const schema = this.registry[scope];
@@ -164,11 +169,11 @@ export default class ConfigStoreService {
   }
 
   /**
-   * Get the Zod schema for a specific field in a scope.
-   * Used by the config command to determine prompt type.
-   * @param {string} scope - 'global' or a command name.
-   * @param {string} key - The configuration key.
-   * @returns {z.ZodTypeAny | undefined} The Zod schema for the field.
+   * Return the Zod schema for a specific field in a scope.
+   * Used by the config command to determine the appropriate prompt type.
+   * @param scope - `'global'` or a command name.
+   * @param key - The configuration key.
+   * @returns The Zod schema for the field, or `undefined` if the scope/key doesn't exist.
    */
   public getFieldSchema(scope: string, key: string): z.ZodTypeAny | undefined {
     const schema = this.registry[scope];
@@ -177,24 +182,28 @@ export default class ConfigStoreService {
   }
 
   /**
-   * Check if a scope name is registered.
-   * @param {string} scope - The scope to validate.
-   * @returns {boolean}
+   * Return `true` if the scope has a registered schema.
+   * @param scope - The scope name to check.
+   * @returns `true` if the scope is registered.
    */
   public hasScope(scope: string): boolean {
     return scope in this.registry;
   }
 
   /**
-   * Check if a key exists within a scope.
-   * @param {string} scope - The scope name.
-   * @param {string} key - The key to validate.
-   * @returns {boolean}
+   * Return `true` if the key is defined in the scope's schema.
+   * @param scope - The scope name.
+   * @param key - The key to check.
+   * @returns `true` if the key exists in the scope.
    */
   public hasKey(scope: string, key: string): boolean {
     return this.getKeys(scope).includes(key);
   }
 
+  /**
+   * Throw if the scope is not registered.
+   * @param scope - The scope to validate.
+   */
   public validateScope(scope: string): void {
     if (!this.hasScope(scope)) {
       const available = this.getScopes().join(', ');
@@ -204,6 +213,11 @@ export default class ConfigStoreService {
     }
   }
 
+  /**
+   * Throw if the key does not exist in the scope's schema.
+   * @param scope - The scope name.
+   * @param key - The key to validate.
+   */
   public validateConfigKey(scope: string, key: string): void {
     if (this.hasScope(scope)) {
       if (!this.hasKey(scope, key)) {

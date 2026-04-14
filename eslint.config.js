@@ -7,6 +7,7 @@ import prettier from 'eslint-config-prettier';
 import { importX } from 'eslint-plugin-import-x';
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
 import n from 'eslint-plugin-n';
+import jsdoc from 'eslint-plugin-jsdoc';
 
 export default defineConfig(
   {
@@ -26,7 +27,7 @@ export default defineConfig(
           './packages/demo/tsconfig.build.json',
         ],
         tsconfigRootDir: dirname(fileURLToPath(import.meta.url)),
-        warnOnUnsupportedTypeScriptVersion: false,
+        errorOnUnsupportedTypeScriptVersion: false,
         noWarnOnMultipleProjects: true,
       },
     },
@@ -48,11 +49,11 @@ export default defineConfig(
       'import-x/no-unresolved': 'error',
       'import-x/no-cycle': 'error',
       'import-x/no-duplicates': 'error',
-      'import-x/order': ['warn', {
+      'import-x/order': ['error', {
         groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
         'newlines-between': 'never',
       }],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
     },
@@ -61,5 +62,49 @@ export default defineConfig(
     // disable type-aware linting on JS files
     files: ['**/*.js'],
     extends: [tseslintConfigs.disableTypeChecked],
+  },
+  {
+    files: ['packages/core/src/**/*.ts'],
+    plugins: { jsdoc },
+    rules: {
+      // Require JSDoc on exported functions, classes, and public methods (not constructors)
+      'jsdoc/require-jsdoc': ['error', {
+        publicOnly: true,
+        checkConstructors: false,
+        require: {
+          FunctionDeclaration: true,
+          MethodDefinition: true,
+          ClassDeclaration: true,
+          ArrowFunctionExpression: false,
+          FunctionExpression: false,
+        },
+      }],
+
+      // Require @param for every documented parameter
+      'jsdoc/require-param': ['error', { enableFixer: false }],
+      'jsdoc/require-param-description': 'error',
+
+      // Require @returns when a function returns a non-trivial value
+      'jsdoc/require-returns': ['error', { forceReturnsWithAsync: false }],
+      'jsdoc/require-returns-description': 'error',
+
+      // Don't duplicate TypeScript types inside JSDoc
+      'jsdoc/no-types': 'error',
+      'jsdoc/require-param-type': 'off',
+      'jsdoc/require-returns-type': 'off',
+
+      // Keep descriptions consistent
+      'jsdoc/require-description': ['error', {
+        contexts: ['ClassDeclaration'],
+      }],
+    },
+  },
+  {
+    // CLI utility is a thin wrapper — individual method docs add noise over the class-level doc
+    files: ['packages/core/src/utils/cli.ts'],
+    plugins: { jsdoc },
+    rules: {
+      'jsdoc/require-jsdoc': 'off',
+    },
   },
 );
