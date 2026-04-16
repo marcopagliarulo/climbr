@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
     "lint": "npm run lint --workspaces",
     "format": "npm run format --workspaces"
   },

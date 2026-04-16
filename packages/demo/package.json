@@ -11,6 +11,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
+    "typecheck": "tsc --noEmit",
     "start": "tsx src/bin/index.ts",
     "lint": "eslint ./src",
     "format": "prettier --write ."
@@ -18,5 +20,19 @@
   "dependencies": {
     "@climbr/core": "^0.1.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "author": "Marco Pagliarulo",
+  "keywords": [
+    "cli",
+    "demo",
+    "climbr",
+    "typescript",
+    "interactive",
+    "prompts"
+  ],
+  "files": [
+    "./dist",
+    "README.md",
+    "LICENSE"
+  ]
 }
