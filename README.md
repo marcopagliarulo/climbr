@@ -41,6 +41,7 @@ npm run build -w packages/core
 Parts of this project were developed with the assistance of [Claude Code](https://claude.ai/code) (Anthropic). AI was used in the following capacities:
 
 - **Documentation** — reviewing and completing README files and inline JSDoc comments across the codebase
+- **Reference implementation** — initial scaffolding of `@climbr/demo`, subsequently revised by the author
 - **Imagery** — The logo was created with the assistance of ChatGPT.
 - **Maintenance tasks** — suggesting improvements such as `package.json` metadata (keywords, author, script additions) and `tsconfig` structure
 - **Workspace bootstrap** — setting up shared configuration files including ESLint, Prettier, and root `tsconfig`
