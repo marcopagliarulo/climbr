@@ -27,15 +27,6 @@ export interface ClimbrOptions {
   configDir?: string;
 
   /**
-   * Control built-in default commands.
-   * Set a key to `false` to disable it entirely.
-   * Pass a Command to override it with your own implementation.
-   */
-  defaults?: {
-    config?: false | Command;
-  };
-
-  /**
    * Name used to namespace the config store on disk.
    * Defaults to the value of `name`.
    */
@@ -48,7 +39,8 @@ export interface ClimbrOptions {
 export interface ClimbrInstance {
   /**
    * Register a Commander Command plugin.
-   * If a built-in command with the same name exists, it is replaced.
+   * Plugins are registered before built-in commands, so a plugin with the
+   * same name as a built-in silently takes precedence.
    */
   use(command: Command): ClimbrInstance;
 
