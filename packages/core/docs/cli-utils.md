@@ -256,6 +256,22 @@ Returns `Promise<string[]>`.
 
 ---
 
+### `promptArrayOfNumber`
+
+Same as `promptArray` but collects numbers. Stops when the user submits without entering a value.
+
+```ts
+const ports = await CliUtils.promptArrayOfNumber({
+  message: 'Add a port',
+  validate: (v) => (v !== undefined && v > 0) || 'Must be a positive number',
+});
+// ports: number[]
+```
+
+Returns `Promise<number[]>`.
+
+---
+
 ### `promptObject`
 
 Open a temporary JSON file in the user's `$EDITOR`. The result is parsed and returned as an object.

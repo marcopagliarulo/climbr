@@ -61,18 +61,69 @@ const cli = createCli({
 
 ## Supported Zod types
 
-The built-in `config set` command introspects the Zod schema to determine the right interactive prompt:
+Config schemas are type-checked at compile time. Only the following Zod types are accepted as field values (all can optionally be wrapped in `.default(...)`):
+
+**String and string-format types**
+
+| Type | Notes |
+|---|---|
+| `z.string()` | Plain string (with any string constraints: `.min()`, `.max()`, `.regex()`, etc.) |
+| `z.email()` | Email address |
+| `z.uuid()` | UUID (any version) |
+| `z.url()` / `z.httpUrl()` / `z.hostname()` | URL / HTTP URL / hostname |
+| `z.emoji()` | Emoji character |
+| `z.base64()` / `z.base64url()` | Base-64 encoded string |
+| `z.hex()` | Hex string |
+| `z.jwt()` | JSON Web Token |
+| `z.nanoid()` / `z.cuid()` / `z.cuid2()` / `z.ulid()` | ID formats |
+| `z.ipv4()` / `z.ipv6()` / `z.mac()` / `z.cidrv4()` / `z.cidrv6()` | Network formats |
+| `z.hash('sha256')` (and other hash algorithms) | Hash string |
+| `z.iso.date()` / `z.iso.time()` / `z.iso.datetime()` / `z.iso.duration()` | ISO date/time formats |
+
+**Other types**
+
+| Type | Notes |
+|---|---|
+| `z.number()` | Number (with any numeric constraints) |
+| `z.int()` / `z.int32()` | Integer |
+| `z.boolean()` | Boolean |
+| `z.enum([...])` | Enum (string union) |
+| `z.stringbool()` | Stringified boolean (`"true"`/`"false"` → `boolean`) |
+| `z.array(z.string())` | Array of strings |
+| `z.array(z.int())` | Array of integers |
+| `z.tuple([...])` | Tuple |
+
+> **Not yet supported:** `z.object()`, `z.record()`, `z.map()`, `z.set()`.
+
+### Interactive prompt mapping
+
+The built-in `config set` command introspects the Zod schema to pick the right prompt:
 
 | Zod type | Prompt used |
 |---|---|
-| `z.string()` | Free-text input |
+| `z.string()` and string-format types | Free-text input |
 | `z.number()` | Numeric input |
 | `z.boolean()` | True / False select |
 | `z.enum([...])` | Single select |
-| `z.array(...)` | Repeated input until empty |
-| `z.object(...)` | JSON editor |
+| `z.array(z.string())` | Repeated text input until empty |
+| `z.array(z.int())` | Repeated numeric input until empty |
 
-All other types fall back to free-text input.
+### Field descriptions
+
+Add `.meta({ description: "..." })` to a field to customise the prompt label shown during `config set`:
+
+```ts
+export default {
+  scope: 'deploy',
+  schema: z.object({
+    environment: z.enum(['staging', 'production'])
+      .meta({ description: 'Target deployment environment' })
+      .default('staging'),
+  }),
+} as ConfigDefinition;
+```
+
+When the user runs `config set`, the prompt will read _"Target deployment environment:"_ instead of the generic _"Enter value for 'environment':"_.
 
 ## Reading config in a command
 
