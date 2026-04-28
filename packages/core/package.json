@@ -14,6 +14,7 @@
   "files": [
     "./dist",
     "./docs",
+    "./climbr.svg",
     "LICENSE",
     "README.md"
   ],
@@ -27,7 +28,7 @@
     "lint": "eslint ./src",
     "format": "prettier --write ."
   },
-  "peerDependencies": {
+  "dependencies": {
     "@inquirer/prompts": "^8.4.0",
     "boxen": "^8.0.1",
     "chalk": "^5.6.2",
@@ -35,6 +36,15 @@
     "configstore": "^8.0.0",
     "ora": "^9.3.0",
     "zod": "^4.3.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marcopagliarulo/climbr.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/marcopagliarulo/climbr/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/marcopagliarulo/climbr/issues"
   },
   "license": "MIT",
   "author": "Marco Pagliarulo",

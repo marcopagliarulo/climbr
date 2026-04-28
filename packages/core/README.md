@@ -62,11 +62,11 @@ my-tool hello World
 
 | Guide | Description |
 |---|---|
-| [Getting started](./docs/getting-started.md) | Project setup, `createCli` options, running your CLI |
-| [Commands](./docs/commands.md) | Creating commands, conventions, subcommands |
-| [Configuration](./docs/configuration.md) | Persistent config with Zod schemas |
-| [Plugins](./docs/plugins.md) | Registering commands explicitly via `.use()` |
-| [CliUtils API](./docs/cli-utils.md) | All prompts, output methods, and formatters |
+| [Getting started](https://github.com/marcopagliarulo/climbr/blob/main/packages/core/docs/getting-started.md) | Project setup, `createCli` options, running your CLI |
+| [Commands](https://github.com/marcopagliarulo/climbr/blob/main/packages/core/docs/commands.md) | Creating commands, conventions, subcommands |
+| [Configuration](https://github.com/marcopagliarulo/climbr/blob/main/packages/core/docs/configuration.md) | Persistent config with Zod schemas |
+| [Plugins](https://github.com/marcopagliarulo/climbr/blob/main/packages/core/docs/plugins.md) | Registering commands explicitly via `.use()` |
+| [CliUtils API](https://github.com/marcopagliarulo/climbr/blob/main/packages/core/docs/cli-utils.md) | All prompts, output methods, and formatters |
 
 ## Exports
 
