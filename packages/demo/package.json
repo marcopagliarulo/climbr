@@ -1,6 +1,6 @@
 {
   "name": "@climbr/demo",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "Demo CLI built with @climbr/core",
   "type": "module",
   "bin": {
@@ -19,6 +19,15 @@
   },
   "dependencies": {
     "@climbr/core": "^0.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marcopagliarulo/climbr.git",
+    "directory": "packages/demo"
+  },
+  "homepage": "https://github.com/marcopagliarulo/climbr/tree/main/packages/demo#readme",
+  "bugs": {
+    "url": "https://github.com/marcopagliarulo/climbr/issues"
   },
   "license": "MIT",
   "author": "Marco Pagliarulo",
