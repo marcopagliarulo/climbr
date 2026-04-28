@@ -4,14 +4,14 @@
   "description": "Demo CLI built with @climbr/core",
   "type": "module",
   "bin": {
-    "climbr-demo": "./dist/bin/index.js",
-    "demo": "./dist/bin/index.js"
+    "climbr-demo": "dist/bin/index.js",
+    "demo": "dist/bin/index.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json && chmod +x dist/bin/index.js",
     "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit",
     "start": "tsx src/bin/index.ts",
@@ -23,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/marcopagliarulo/climbr.git",
+    "url": "git+https://github.com/marcopagliarulo/climbr.git",
     "directory": "packages/demo"
   },
   "homepage": "https://github.com/marcopagliarulo/climbr/tree/main/packages/demo#readme",
