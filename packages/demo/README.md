@@ -6,6 +6,8 @@ A reference CLI built with [@climbr/core](https://github.com/marcopagliarulo/cli
 
 ```bash
 npx @climbr/demo <command>
+# or
+npx climbr-demo <command>
 ```
 
 ## Commands

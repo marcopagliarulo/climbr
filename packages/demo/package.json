@@ -4,7 +4,8 @@
   "description": "Demo CLI built with @climbr/core",
   "type": "module",
   "bin": {
-    "climbr-demo": "./dist/bin/index.js"
+    "climbr-demo": "./dist/bin/index.js",
+    "demo": "./dist/bin/index.js"
   },
   "engines": {
     "node": ">=18.0.0"
