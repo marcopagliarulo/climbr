@@ -11,11 +11,13 @@ export default {
       .enum(['developer', 'designer', 'manager', 'other'])
       .default('developer'),
     defaultTags: z.array(z.string()).default([]),
+    /* @TODO Add support
     defaultMetadata: z
       .object({
         website: z.string(),
         bio: z.string(),
       })
       .default({ website: '', bio: '' }),
+    */
   }),
 } as ConfigDefinition;
