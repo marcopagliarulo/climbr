@@ -1,3 +1,4 @@
+import { EOL } from 'os';
 import { z } from 'zod';
 import CLI from '../../utils/cli.js';
 import type ConfigStoreService from '../../services/configStore/index.js';
@@ -39,6 +40,7 @@ export const pickScope = async (
 /**
  * Prompt the user to select a key within a config scope.
  * Auto-selects if the scope contains only one key.
+ *
  * @param configStore - The config store to read keys from.
  * @param scope - The scope to list keys for.
  * @param action - Verb shown in the prompt (e.g. `'get'`, `'set'`).
@@ -63,40 +65,39 @@ export const pickKey = async (
  * @returns The value entered by the user.
  */
 export const promptForZodField = async (
-  fieldSchema: z.ZodTypeAny,
+  fieldSchema: z.ZodType,
   key: string,
 ): Promise<unknown> => {
-  const message = `Enter value for '${key}':`;
+  const message = (fieldSchema.meta()?.description ?? `Enter value for '${key}'`) + ':';
 
-  // Unwrap ZodDefault to get the inner type and default value
   let defaultValue: unknown;
+  let schema: z.ZodType = fieldSchema;
+
+  const validate = async <T>(value: T) => {
+    const result = await fieldSchema.safeParseAsync(value);
+    return result.success ? true : result.error?.issues.reduce((acc, v) => acc + v.message + EOL, '')
+  }
 
   if (fieldSchema instanceof z.ZodDefault) {
     defaultValue = fieldSchema.parse(undefined);
+    schema = fieldSchema.unwrap() as z.ZodType;
   }
 
-  if (fieldSchema instanceof z.ZodString) {
-    return CLI.promptInput({
-      message,
-      defaultValue: defaultValue as string | undefined,
-      required: true,
-    });
-  }
-
-  if (fieldSchema instanceof z.ZodNumber) {
+  if (schema instanceof z.ZodNumber) {
     return CLI.promptNumber({
       message,
       defaultValue: defaultValue as number | undefined,
       required: true,
+      validate: (value) => validate<number | undefined>(value)
     });
   }
 
-  if (fieldSchema instanceof z.ZodBoolean) {
+  if (schema instanceof z.ZodBoolean) {
     return CLI.promptBoolean(message);
   }
 
-  if (fieldSchema instanceof z.ZodEnum) {
-    const options = fieldSchema.options as string[];
+  if (schema instanceof z.ZodEnum) {
+    const options = schema.options as string[];
     return CLI.promptSelect({
       message,
       choices: options.map((o) => ({ name: o, value: o })),
@@ -104,14 +105,39 @@ export const promptForZodField = async (
     });
   }
 
-  if (fieldSchema instanceof z.ZodArray) {
-    return CLI.promptArray({ message });
+  if (schema instanceof z.ZodArray) {
+    const arrayValidate = <T = string>(value: T): Promise<string | true> => {
+      return validate([value])
+    }
+
+    if (schema.element instanceof z.ZodNumber) {
+      return CLI.promptArrayOfNumber({
+        message,
+        validate: arrayValidate<number>,
+      });
+    }
+
+    return CLI.promptArray({
+      message,
+      validate: arrayValidate<string>,
+    });
   }
 
-  if (fieldSchema instanceof z.ZodObject) {
-    return CLI.promptObject({ message });
+  /* @todo add support
+  if (schema instanceof z.ZodObject) {
+    return CLI.promptObject({
+      message,
+      defaultValue: defaultValue as string | undefined,
+      validate : (value) => validate<string>(value)
+    });
   }
+  */
 
   // Fallback: treat as string and let Zod validate on set
-  return CLI.promptInput({ message, required: true });
+  return CLI.promptInput({
+    message,
+    defaultValue: defaultValue as string | undefined,
+    required: true,
+    validate: (value) => validate<string>(value)
+  });
 };

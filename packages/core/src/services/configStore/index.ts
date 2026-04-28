@@ -177,7 +177,7 @@ export default class ConfigStoreService {
   public getFieldSchema(scope: string, key: string): z.ZodTypeAny | undefined {
     const schema = this.registry[scope];
     if (!schema) return undefined;
-    return (schema.shape as Record<string, z.ZodTypeAny>)[key];
+    return (schema.shape as Record<string, z.ZodType>)[key];
   }
 
   /**

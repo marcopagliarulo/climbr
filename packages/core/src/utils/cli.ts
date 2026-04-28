@@ -24,7 +24,7 @@ import type {
   FormatValue,
   BoxedMessage,
   BoxedMessagePrivate,
-} from '../types/cli.js';
+} from '@climbr/core/types/cli.js';
 
 /**
  * CLI utility class for handling console input/output operations.
@@ -49,10 +49,9 @@ export default class CliUtils {
   }
 
   static showError(message: string, exit: boolean = true): void {
+    console.error(chalk.red('Error:'), message);
     if (exit) {
-      program.error(message);
-    } else {
-      console.error(chalk.red('Error:'), message);
+      program.error('');
     }
   }
 
@@ -255,18 +254,34 @@ export default class CliUtils {
     }
   }
 
-  static async promptArray({
+  static async promptArray<T = string>({
     message,
     validate,
-  }: PromptArray): Promise<string[]> {
-    const collectInputs = async (inputs: string[] = []): Promise<string[]> => {
+    collectInputsCallback = async (inputs: T[] = []): Promise<T[]> => {
       const answer = await input({
         message: `${message} (To stop adding elements, submit an empty value)`,
-        validate,
+        validate: validate ? (value) => validate(value as T) : undefined,
       });
       if (answer.trim() === '') return inputs;
-      return collectInputs([...inputs, answer]);
-    };
-    return collectInputs();
+      return collectInputsCallback([...inputs, answer] as T[]);
+    }
+  }: PromptArray<T>): Promise<T[]> {
+    return collectInputsCallback();
   }
+
+  static async promptArrayOfNumber<T = number | undefined>({
+    message,
+    validate,
+    collectInputsCallback = async (inputs: T[] = []): Promise<T[]> => {
+      const answer = await number({
+        message: `${message} (To stop adding elements, submit an empty value)`,
+        validate: validate ? (value) => validate(value as T) : undefined,
+      });
+      if (answer === undefined) return inputs;
+      return collectInputsCallback([...inputs, answer as T]);
+    },
+  }: PromptArray<T>): Promise<T[]> {
+    return collectInputsCallback();
+  }
+
 }

@@ -60,9 +60,10 @@ export type PromptObject = {
   validate?: (value: string) => boolean | string | Promise<string | boolean>;
 };
 
-export type PromptArray = {
+export type PromptArray<T> = {
   message: string;
-  validate?: (value: string) => boolean | string | Promise<string | boolean>;
+  validate?: (value: T) => boolean | string | Promise<string | boolean>;
+  collectInputsCallback?: (inputs?: T[]) => Promise<T[]>;
 };
 
 export type FormatValue = {

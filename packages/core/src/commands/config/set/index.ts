@@ -1,5 +1,7 @@
 import { inspect } from 'util';
+import { EOL } from 'os';
 import { Command } from 'commander';
+import { promptForZodField } from '../utils.js';
 import CLI from '../../../utils/cli.js';
 import type ConfigStoreService from '../../../services/configStore/index.js';
 
@@ -70,8 +72,19 @@ export default function createSetCommand(
 ): Command {
   command
     .argument('[value]', 'Value to set')
-    .action((scope, key, value) =>
-      setAction(configStore, scope as string, key as string, value as unknown),
+    .action(async (scope: string, key: string, value: unknown) => {
+        const fieldSchema = configStore.getFieldSchema(scope, key);
+        if (fieldSchema) {
+          if (value) {
+            const result = await fieldSchema.safeParseAsync(value);
+            if (!result.success) {
+              throw new Error(result.error?.issues.reduce((acc, v) => acc + v.message + EOL, ''));
+            }
+          }
+          const pickedValue = value || (await promptForZodField(fieldSchema, key));
+          setAction(configStore, scope, key, pickedValue);
+        }
+      },
     );
 
   return command;
